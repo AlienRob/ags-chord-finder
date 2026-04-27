@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AGS Premium Chord Finder</title>
+<style>
+:root{
+  --bg:#050711;--panel:#0b1020;--panel2:#11172c;--text:#f5f7ff;--muted:#aab1c8;
+  --accent:#8f7bff;--cyan:#66e5ff;--root:#ff3131;--note:#8f7bff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:
+radial-gradient(circle at 15% 0%,rgba(143,123,255,.24),transparent 32%),
+radial-gradient(circle at 85% 8%,rgba(102,229,255,.13),transparent 30%),
+linear-gradient(135deg,#050711,#080d1c 55%,#04060f);color:var(--text);font-family:Inter,Arial,sans-serif}
+.ags{max-width:1200px;margin:0 auto;padding:28px 16px}
+.shell{border:1px solid rgba(143,123,255,.28);border-radius:28px;padding:28px;background:linear-gradient(135deg,rgba(6,9,20,.98),rgba(10,14,30,.98));box-shadow:0 30px 90px rgba(0,0,0,.45)}
+.logo{width:100%;display:block;margin:0 auto 18px}
+.header{text-align:center;margin-bottom:24px}
+.eyebrow{color:var(--cyan);font-size:12px;text-transform:uppercase;letter-spacing:.18em;font-weight:800}
+h1{margin:8px 0 8px;font-size:clamp(30px,4vw,48px);letter-spacing:-.05em}
+.sub{max-width:760px;margin:0 auto;color:var(--muted);font-size:17px;line-height:1.55}
+.controls{display:grid;grid-template-columns:180px 1fr 170px;gap:14px;padding:18px;border:1px solid rgba(255,255,255,.1);border-radius:22px;background:rgba(255,255,255,.045);margin:22px 0 16px}
+select,button{height:52px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:#11172c;color:white;padding:0 14px;font-size:15px;font-weight:700}
+select option,select optgroup{background:#0b1020;color:#fff}
+button{cursor:pointer}
+.primary{background:linear-gradient(135deg,var(--accent),var(--cyan));color:#050711;border:0;font-weight:900}
+.summary{display:grid;grid-template-columns:170px 1fr 1.2fr;gap:14px;margin-bottom:18px}
+.pill{padding:16px 18px;min-height:78px;border-radius:20px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09)}
+.label{display:block;color:#737b98;font-size:12px;text-transform:uppercase;letter-spacing:.1em;font-weight:900;margin-bottom:7px}
+.value{font-size:18px;font-weight:800}.chord-name{font-size:28px}
+.toolbar{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.togglebar{display:inline-grid;grid-auto-flow:column;gap:8px;padding:6px;border-radius:999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08)}
+.mini{width:auto;height:38px;padding:0 16px;border-radius:999px;background:transparent;color:var(--muted);border:0;font-size:13px}
+.mini.active{background:linear-gradient(135deg,var(--cyan),#d9fbff);color:#050711}
+.title-row{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:16px}
+.title-row h2{margin:0;font-size:22px}.title-row p{margin:0;color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.card{min-height:430px;padding:16px;border-radius:24px;background:linear-gradient(180deg,rgba(18,22,42,.96),rgba(10,13,28,.98));border:1px solid rgba(143,123,255,.28);box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.card-top{display:flex;justify-content:space-between;gap:10px;margin-bottom:12px}
+.pos{margin:0;font-size:15px;font-weight:900}.voicing{color:var(--muted);font-size:12px;margin-top:3px}
+.tag{color:var(--cyan);border:1px solid rgba(102,229,255,.25);background:rgba(102,229,255,.075);border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;height:max-content}
+.diagram{height:270px;display:grid;place-items:center;margin:10px 0 14px}
+svg{overflow:visible;display:block}.slabel{font-size:11px;fill:#d9ddf5;font-weight:800}.flabel{font-size:12px;fill:#b7bfdc;font-weight:900}
+.string{stroke:rgba(245,247,255,.72);stroke-linecap:round}.fret{stroke:rgba(245,247,255,.24);stroke-width:2;stroke-linecap:round}.nut{stroke:#e7e4d4;stroke-width:8;stroke-linecap:round}
+.note{fill:var(--note);filter:drop-shadow(0 0 8px rgba(143,123,255,.34))}.root{fill:var(--root);filter:drop-shadow(0 0 10px rgba(255,49,49,.42))}
+.dottext{fill:#fff;font-size:12px;font-weight:950;text-anchor:middle;dominant-baseline:central}.muted{fill:#050505;stroke:#fff;stroke-width:.7px;paint-order:stroke;font-size:17px;font-weight:1000;text-anchor:middle}
+.meta{display:grid;gap:5px;color:var(--muted);font-size:12px;line-height:1.35;margin-bottom:12px}.strum{height:38px;border-radius:12px;background:rgba(255,255,255,.06)}
+.advanced{margin-top:22px;padding:18px;border-radius:20px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--muted)}
+summary{cursor:pointer;color:var(--text);font-weight:900}summary::-webkit-details-marker{display:none}
+.builder{margin-top:18px}.builder p{margin:0 0 14px;color:var(--muted)}
+.builder-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.builder-grid label{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);color:#fff;font-size:13px;font-weight:700}
+.builder-grid input{accent-color:var(--cyan)}
+.empty{grid-column:1/-1;padding:28px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted);text-align:center}
+@media(max-width:980px){.grid{grid-template-columns:repeat(2,1fr)}.summary{grid-template-columns:1fr}}
+@media(max-width:720px){.shell{padding:18px}.controls{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.title-row{display:block}.togglebar{width:100%;grid-auto-flow:row;grid-template-columns:repeat(3,1fr);border-radius:18px;margin-bottom:10px}.builder-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="ags"><div class="shell">
+<header class="header">
+<img class="logo" src="https://s3.us-east-1.amazonaws.com/contents.newzenler.com/73037/library/eb-anner699c1c8593a30_lg.png" alt="Alien Guitar Secrets">
+<div class="eyebrow">Alien Guitar Secrets</div>
+<h1>Premium Chord Finder</h1>
+<p class="sub">Find real guitar voicings across the neck. Not just one shape — see the chord as a connected fretboard map.</p>
+</header>
+
+<section class="controls">
+<select id="root"></select>
+<select id="type"></select>
+<button class="primary" id="find">Find Chord</button>
+</section>
+
+<section class="summary">
+<div class="pill"><span class="label">Chord</span><span id="chordName" class="value chord-name"></span></div>
+<div class="pill"><span class="label">Formula</span><span id="formula" class="value"></span></div>
+<div class="pill"><span class="label">Notes</span><span id="notes" class="value"></span></div>
+</section>
+
+<div class="toolbar">
+<div class="togglebar">
+<button class="mini active" data-view="intervals">Intervals</button>
+<button class="mini" data-view="notes">Notes</button>
+<button class="mini" data-view="fingers">Fingers</button>
+</div>
+<div class="togglebar">
+<button class="mini active" data-family="all">All</button>
+<button class="mini" data-family="core">Core</button>
+<button class="mini" data-family="inversion">Inversions</button>
+<button class="mini" data-family="extension">Extensions</button>
+<button class="mini" data-family="substitution">Subs</button>
+</div>
+</div>
+
+<section class="title-row">
+<div><h2 id="gridTitle"></h2><p>Clean vertical chord charts. Same harmony, different locations.</p></div>
+<p id="count"></p>
+</section>
+
+<section class="grid" id="grid"></section>
+
+<section class="advanced">
+<details>
+<summary>Advanced: Build Your Own Chord ▾</summary>
+<div class="builder">
+<p>Select the intervals you want, then generate a custom chord map across the neck.</p>
+<div class="builder-grid">
+<label><input type="checkbox" class="bi" value="1" data-semi="0" checked>1</label>
+<label><input type="checkbox" class="bi" value="b2" data-semi="1">b2</label>
+<label><input type="checkbox" class="bi" value="2 / 9" data-semi="2">2 / 9</label>
+<label><input type="checkbox" class="bi" value="b3 / #9" data-semi="3">b3 / #9</label>
+<label><input type="checkbox" class="bi" value="3" data-semi="4" checked>3</label>
+<label><input type="checkbox" class="bi" value="4 / 11" data-semi="5">4 / 11</label>
+<label><input type="checkbox" class="bi" value="b5 / #11" data-semi="6">b5 / #11</label>
+<label><input type="checkbox" class="bi" value="5" data-semi="7" checked>5</label>
+<label><input type="checkbox" class="bi" value="#5 / b13" data-semi="8">#5 / b13</label>
+<label><input type="checkbox" class="bi" value="6 / 13" data-semi="9">6 / 13</label>
+<label><input type="checkbox" class="bi" value="b7" data-semi="10">b7</label>
+<label><input type="checkbox" class="bi" value="7" data-semi="11">7</label>
+</div>
+<button id="build" class="primary" type="button">Build Custom Chord</button>
+</div>
+</details>
+</section>
+</div></div>
+
+<script>
+const NOTES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const FLATS={"C#":"Db","D#":"Eb","F#":"Gb","G#":"Ab","A#":"Bb"};
+const ROOTS=["C","C# / Db","D","D# / Eb","E","F","F# / Gb","G","G# / Ab","A","A# / Bb","B"];
+const STR=["E","A","D","G","B","E"], OPEN=[40,45,50,55,59,64], FREQ=[82.41,110,146.83,196,246.94,329.63];
+const TYPES={
+"Major":{s:"",f:"core",i:[["1",0,1],["3",4,1],["5",7,1]]},
+"Minor":{s:"m",f:"core",i:[["1",0,1],["b3",3,1],["5",7,1]]},
+"Augmented":{s:"aug",f:"core",i:[["1",0,1],["3",4,1],["#5",8,1]]},
+"Diminished":{s:"dim",f:"core",i:[["1",0,1],["b3",3,1],["b5",6,1]]},
+"Sus 2":{s:"sus2",f:"core",i:[["1",0,1],["2",2,1],["5",7,1]]},
+"Sus 4":{s:"sus4",f:"core",i:[["1",0,1],["4",5,1],["5",7,1]]},
+"Dominant 7":{s:"7",f:"core",i:[["1",0,1],["3",4,1],["5",7,0],["b7",10,1]]},
+"Major 7":{s:"maj7",f:"core",i:[["1",0,1],["3",4,1],["5",7,0],["7",11,1]]},
+"Minor 7":{s:"m7",f:"core",i:[["1",0,1],["b3",3,1],["5",7,0],["b7",10,1]]},
+"Minor Major 7":{s:"m(maj7)",f:"core",i:[["1",0,1],["b3",3,1],["5",7,0],["7",11,1]]},
+"Diminished 7":{s:"dim7",f:"core",i:[["1",0,1],["b3",3,1],["b5",6,1],["bb7",9,1]]},
+"Half-Diminished 7":{s:"m7b5",f:"core",i:[["1",0,1],["b3",3,1],["b5",6,1],["b7",10,1]]},
+"Augmented 7":{s:"7#5",f:"core",i:[["1",0,1],["3",4,1],["#5",8,1],["b7",10,1]]},
+"Major 7 #5":{s:"maj7#5",f:"core",i:[["1",0,1],["3",4,1],["#5",8,1],["7",11,1]]},
+"7 sus4":{s:"7sus4",f:"core",i:[["1",0,1],["4",5,1],["5",7,0],["b7",10,1]]},
+"Add 9":{s:"add9",f:"extension",i:[["1",0,1],["3",4,1],["5",7,0],["9",2,1]]},
+"Minor Add 9":{s:"m(add9)",f:"extension",i:[["1",0,1],["b3",3,1],["5",7,0],["9",2,1]]},
+"Add 11":{s:"add11",f:"extension",i:[["1",0,1],["3",4,1],["5",7,0],["11",5,1]]},
+"Minor Add 11":{s:"m(add11)",f:"extension",i:[["1",0,1],["b3",3,1],["5",7,0],["11",5,1]]},
+"6":{s:"6",f:"extension",i:[["1",0,1],["3",4,1],["5",7,0],["6",9,1]]},
+"Minor 6":{s:"m6",f:"extension",i:[["1",0,1],["b3",3,1],["5",7,0],["6",9,1]]},
+"6/9":{s:"6/9",f:"extension",i:[["1",0,1],["3",4,1],["5",7,0],["6",9,1],["9",2,1]]},
+"Minor 6/9":{s:"m6/9",f:"extension",i:[["1",0,1],["b3",3,1],["5",7,0],["6",9,1],["9",2,1]]},
+"Dominant 9":{s:"9",f:"extension",i:[["1",0,0],["3",4,1],["5",7,0],["b7",10,1],["9",2,1]]},
+"Major 9":{s:"maj9",f:"extension",i:[["1",0,0],["3",4,1],["5",7,0],["7",11,1],["9",2,1]]},
+"Minor 9":{s:"m9",f:"extension",i:[["1",0,0],["b3",3,1],["5",7,0],["b7",10,1],["9",2,1]]},
+"9 sus4":{s:"9sus4",f:"extension",i:[["1",0,0],["4",5,1],["5",7,0],["b7",10,1],["9",2,1]]},
+"7 b9":{s:"7b9",f:"extension",i:[["1",0,0],["3",4,1],["5",7,0],["b7",10,1],["b9",1,1]]},
+"7 #9":{s:"7#9",f:"extension",i:[["1",0,0],["3",4,1],["5",7,0],["b7",10,1],["#9",3,1]]},
+"Dominant 11":{s:"11",f:"extension",i:[["1",0,0],["3",4,0],["5",7,0],["b7",10,1],["9",2,0],["11",5,1]]},
+"Major 11":{s:"maj11",f:"extension",i:[["1",0,0],["3",4,0],["5",7,0],["7",11,1],["9",2,0],["11",5,1]]},
+"Minor 11":{s:"m11",f:"extension",i:[["1",0,0],["b3",3,1],["5",7,0],["b7",10,1],["9",2,0],["11",5,1]]},
+"Major 7 #11":{s:"maj7#11",f:"extension",i:[["1",0,0],["3",4,1],["5",7,0],["7",11,1],["#11",6,1]]},
+"7 #11":{s:"7#11",f:"extension",i:[["1",0,0],["3",4,1],["5",7,0],["b7",10,1],["#11",6,1]]},
+"Dominant 13":{s:"13",f:"extension",i:[["1",0,0],["3",4,1],["5",7,0],["b7",10,1],["9",2,0],["13",9,1]]},
+"Major 13":{s:"maj13",f:"extension",i:[["1",0,0],["3",4,1],["5",7,0],["7",11,1],["9",2,0],["13",9,1]]},
+"Minor 13":{s:"m13",f:"extension",i:[["1",0,0],["b3",3,1],["5",7,0],["b7",10,1],["9",2,0],["13",9,1]]},
+"7 b13":{s:"7b13",f:"extension",i:[["1",0,0],["3",4,1],["5",7,0],["b7",10,1],["b13",8,1]]},
+"7 b5":{s:"7b5",f:"extension",i:[["1",0,1],["3",4,1],["b5",6,1],["b7",10,1]]},
+"7 #5":{s:"7#5",f:"extension",i:[["1",0,1],["3",4,1],["#5",8,1],["b7",10,1]]},
+"Altered 7":{s:"7alt",f:"extension",i:[["1",0,0],["3",4,1],["b7",10,1],["b9",1,0],["#9",3,0],["b13",8,1]]}
+};
+const SHAPES={
+"Major":[["x",3,2,0,1,0],[8,10,10,9,8,8],["x",3,5,5,5,3],["x","x",10,9,8,8]],
+"Minor":[["x",3,5,5,4,3],[8,10,10,8,8,8],["x","x",10,8,8,8],["x",3,1,0,1,3]],
+"Augmented":[["x",3,2,1,1,0],[8,7,6,5,"x","x"],["x","x",10,9,9,8]],
+"Diminished":[["x",3,4,5,4,"x"],[8,9,10,8,"x","x"],["x","x",10,11,10,11]],
+"Sus 2":[["x",3,0,0,1,3],["x",3,5,5,3,3],[8,10,10,10,8,8]],
+"Sus 4":[["x",3,3,0,1,1],["x",3,5,5,6,3],[8,10,10,10,8,8]],
+"Dominant 7":[["x",3,2,3,1,0],[8,10,8,9,8,8],["x",3,5,3,5,3],["x","x",10,9,11,8]],
+"Major 7":[["x",3,2,0,0,0],["x",3,5,4,5,"x"],["x","x",10,9,8,7],[8,"x",9,9,8,"x"],["x",3,"x",4,5,3]],
+"Minor 7":[["x",3,1,3,1,"x"],[8,10,8,8,8,8],["x",3,5,3,4,3],["x","x",10,8,11,8]],
+"Minor Major 7":[["x",3,1,4,1,"x"],[8,10,9,8,8,8],["x","x",10,8,8,7]],
+"Diminished 7":[["x",3,4,2,4,2],[8,9,7,8,"x","x"],["x","x",10,11,10,11]],
+"Half-Diminished 7":[["x",3,4,3,4,"x"],[8,"x",8,8,7,"x"],["x","x",10,8,11,8]],
+"Augmented 7":[["x",3,2,3,1,4],[8,"x",8,9,9,"x"],["x","x",10,11,11,8]],
+"Major 7 #5":[["x",3,2,1,0,0],[8,"x",9,9,9,"x"],["x","x",10,9,9,7]],
+"7 sus4":[["x",3,3,3,1,1],[8,10,8,10,8,8],["x",3,5,3,6,3]],
+"Add 9":[["x",3,2,0,3,0],["x",3,5,5,3,3],[8,10,10,9,8,10]],
+"Minor Add 9":[["x",3,1,0,3,3],[8,10,10,8,8,10],["x","x",10,8,8,10]],
+"Add 11":[["x",3,3,0,1,0],["x",3,5,5,6,3],[8,8,10,9,8,8]],
+"Minor Add 11":[["x",3,3,0,4,3],[8,8,10,8,8,8],["x","x",10,8,8,6]],
+"6":[["x",3,2,2,1,0],[8,10,10,9,10,8],["x",3,5,5,5,5]],
+"Minor 6":[["x",3,1,2,1,"x"],[8,10,10,8,10,8],["x",3,5,5,4,5]],
+"6/9":[["x",3,2,2,3,3],[8,"x",7,7,8,8],["x",3,"x",2,3,3]],
+"Minor 6/9":[["x",3,1,2,3,3],[8,"x",7,8,8,8],["x",3,"x",2,4,3]],
+"Dominant 9":[["x",3,2,3,3,3],[8,7,8,7,8,"x"],["x",3,"x",3,3,3]],
+"Major 9":[["x",3,0,0,0,0],["x",3,2,4,3,"x"],[8,"x",9,9,8,10]],
+"Minor 9":[["x",3,1,3,3,"x"],[8,"x",8,8,8,10],["x",3,"x",3,4,3]],
+"9 sus4":[["x",3,3,3,3,3],[8,"x",8,7,8,8],["x",3,"x",3,3,1]],
+"7 b9":[["x",3,2,3,2,3],[8,7,8,6,8,"x"],["x","x",10,9,11,9]],
+"7 #9":[["x",3,2,3,4,"x"],[8,7,8,8,8,"x"],["x","x",10,9,11,11]],
+"Dominant 11":[["x",3,3,3,3,1],[8,"x",8,7,6,6],["x",3,"x",3,3,1]],
+"Major 11":[["x",3,2,0,0,1],[8,"x",9,9,8,8],["x","x",10,9,8,8]],
+"Minor 11":[["x",3,1,3,4,1],[8,"x",8,8,6,6],["x",3,"x",3,4,1]],
+"Major 7 #11":[["x",3,2,0,0,2],[8,"x",9,9,7,"x"],["x",3,"x",4,5,2]],
+"7 #11":[["x",3,2,3,1,2],[8,7,8,9,7,"x"],["x",3,"x",3,5,2]],
+"Dominant 13":[["x",3,2,3,3,5],[8,"x",8,9,10,"x"],["x",3,"x",3,5,5]],
+"Major 13":[["x",3,2,2,0,0],[8,"x",9,9,10,"x"],["x",3,"x",4,5,5]],
+"Minor 13":[["x",3,1,2,3,"x"],[8,"x",8,8,10,"x"],["x",3,"x",3,4,5]],
+"7 b13":[["x",3,2,3,1,4],[8,"x",8,9,9,"x"],["x",3,"x",3,5,4]],
+"7 b5":[["x",3,4,3,5,"x"],[8,"x",8,9,7,"x"],["x",3,"x",3,5,2]],
+"7 #5":[["x",3,2,3,1,4],[8,"x",8,9,9,"x"],["x","x",10,11,11,8]],
+"Altered 7":[["x",3,2,3,4,4],[8,7,8,8,9,"x"],["x",3,"x",3,4,4]]
+};
+let view="intervals", fam="all", voicings=[], audio=null;
+const $=id=>document.getElementById(id);
+function mod(n){return((n%12)+12)%12} function rootVal(v){return NOTES.indexOf(v.split(" ")[0])}
+function name(pc){return NOTES[mod(pc)]} function pretty(pc){let n=name(pc);return FLATS[n]?n+"/"+FLATS[n]:n}
+function pcAt(s,f){return mod(OPEN[s]+f)} function title(root,type){return root.split(" ")[0]+TYPES[type].s}
+function normal(sh){let a=[...sh], nums=()=>a.filter(x=>typeof x==="number");while(nums().some(x=>x>17))a=a.map(x=>typeof x==="number"?x-12:x);while(nums().some(x=>x<0))a=a.map(x=>typeof x==="number"?x+12:x);return a}
+function fingers(f){let p=f.filter(x=>typeof x==="number"&&x>0);if(!p.length)return f.map(x=>x===0?"0":null);let m=Math.min(...p);return f.map(x=>x==="x"?null:x===0?"0":String(Math.min(4,Math.max(1,x-m+1))))}
+function classify(shape,rootPc,type,index,customMap,customIntervals){
+ let chord=TYPES[type], intervals=customIntervals||chord.i.map(x=>({n:x[0],s:x[1],r:x[2]}));
+ let map=customMap||new Map(intervals.map(x=>[mod(rootPc+x.s),x.n]));
+ let played=shape.map((f,i)=>typeof f==="number"?{f,i,pc:pcAt(i,f),int:map.get(pcAt(i,f))}:null).filter(Boolean);
+ let present=new Set(played.map(p=>p.int).filter(Boolean)), bass=played[0], bi=bass?bass.int:"";
+ let missing=intervals.filter(x=>!present.has(x.n)).map(x=>x.n);
+ let family=customIntervals?"core":chord.f; if(bi&&bi!=="1")family="inversion"; if(!present.has("1"))family="substitution";
+ let pos=played.filter(p=>p.f>0).map(p=>p.f), min=Math.min(...pos);
+ return {title:(customIntervals?"Custom ":"Position ")+(index+1),subtitle:shape.includes(0)?"Open voicing":((isFinite(min)?min:1)+"th fret area"),tag:family==="extension"?"Extension":family==="substitution"?"Rootless":family==="inversion"?"Inversion":(shape.includes(0)?"Open":"Core"),family,frets:shape,intervals:shape.map((f,i)=>typeof f==="number"?map.get(pcAt(i,f))||"?":null),notes:shape.map((f,i)=>typeof f==="number"?name(pcAt(i,f)):null),fingers:fingers(shape),lowest:bass?name(bass.pc):"—",inversion:bi&&bi!=="1"?bi+" in bass":"Root position",omissions:missing.length?missing.map(m=>"no "+m).join(", "):"None"};
+}
+function generate(rootPc,type){
+ let chord=TYPES[type], allowed=new Set(chord.i.map(x=>mod(rootPc+x[1]))), seeds=SHAPES[type]||[], out=[], seen=new Set();
+ seeds.forEach(seed=>{let sh=normal(seed.map(f=>typeof f==="number"?f+rootPc:f));if(!sh.every((f,i)=>f==="x"||allowed.has(pcAt(i,f))))return;let k=sh.join("-");if(!seen.has(k)){seen.add(k);out.push(sh)}});
+ return out.map((s,i)=>classify(s,rootPc,type,i));
+}
+function windowFor(frets){let p=frets.filter(f=>typeof f==="number"&&f>0);if(!p.length)return{start:1,n:5,nut:true};let m=Math.min(...p);return m<=3?{start:1,n:5,nut:true}:{start:Math.max(1,m-1),n:5,nut:false}}
+function val(v,i){if(view==="notes")return v.notes[i]||"";if(view==="fingers")return v.fingers[i]||"";return v.intervals[i]||""}
+function diagram(v){
+ const w=190,h=238,L=26,T=38,sg=27,fg=34,win=windowFor(v.frets),xs=Array.from({length:6},(_,i)=>L+i*sg);
+ let svg=`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`;
+ STR.forEach((n,i)=>svg+=`<text class="slabel" x="${xs[i]}" y="16" text-anchor="middle">${n}</text>`);
+ v.frets.forEach((f,i)=>{let x=xs[i];if(f==="x")svg+=`<text class="muted" x="${x}" y="31">×</text>`; if(f===0){let r=v.intervals[i]==="1";svg+=`<circle class="${r?"root":"note"}" cx="${x}" cy="27" r="13"/><text class="dottext" x="${x}" y="27.5">${val(v,i)}</text>`}});
+ xs.forEach((x,i)=>svg+=`<line class="string" x1="${x}" y1="${T}" x2="${x}" y2="${T+win.n*fg}" stroke-width="${3.2-i*.32}"/>`);
+ for(let i=0;i<=win.n;i++){let y=T+i*fg;svg+=`<line class="${i===0&&win.nut?"nut":"fret"}" x1="${xs[0]}" y1="${y}" x2="${xs[5]}" y2="${y}"/>`}
+ if(!win.nut)svg+=`<text class="flabel" x="4" y="${T+fg*.66}">${win.start}fr</text>`;
+ v.frets.forEach((f,i)=>{if(typeof f!=="number"||f===0)return;if(f<win.start||f>=win.start+win.n)return;let x=xs[i],y=T+fg*(f-win.start)+fg/2,r=v.intervals[i]==="1";svg+=`<circle class="${r?"root":"note"}" cx="${x}" cy="${y}" r="14"/><text class="dottext" x="${x}" y="${y+.5}">${val(v,i)}</text>`});
+ return svg+"</svg>";
+}
+function render(){
+ let show=voicings.filter(v=>fam==="all"||v.family===fam);$("count").textContent=show.length+" voicing"+(show.length===1?"":"s")+" shown";
+ $("grid").innerHTML=show.length?show.map(v=>`<article class="card"><div class="card-top"><div><p class="pos">${v.title}</p><div class="voicing">${v.subtitle}</div></div><span class="tag">${v.tag}</span></div><div class="diagram">${diagram(v)}</div><div class="meta"><span><b>Lowest note:</b> ${v.lowest} (${v.inversion})</span><span><b>Omissions:</b> ${v.omissions}</span></div><button class="strum" data-i="${voicings.indexOf(v)}">Strum</button></article>`).join(""):`<div class="empty">No voicings in this filter. Try All.</div>`;
+ document.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>strum(voicings[+b.dataset.i]));
+}
+function update(){
+ let root=$("root").value,type=$("type").value,rv=rootVal(root);$("chordName").textContent=title(root,type);$("formula").textContent=TYPES[type].i.map(x=>x[0]).join(" – ");$("notes").textContent=TYPES[type].i.map(x=>pretty(rv+x[1])).join(" – ");$("gridTitle").textContent=title(root,type)+" voicings across the neck";voicings=generate(rv,type);render();
+}
+function init(){
+ $("root").innerHTML=ROOTS.map(r=>`<option${r==="C"?" selected":""}>${r}</option>`).join("");
+ const groups=[["TRIADS + SUSPENDED",["Major","Minor","Augmented","Diminished","Sus 2","Sus 4"]],["7TH CHORDS",["Dominant 7","Major 7","Minor 7","Minor Major 7","Diminished 7","Half-Diminished 7","Augmented 7","Major 7 #5","7 sus4"]],["ADDED TONES + 6THS",["Add 9","Minor Add 9","Add 11","Minor Add 11","6","Minor 6","6/9","Minor 6/9"]],["9THS",["Dominant 9","Major 9","Minor 9","9 sus4","7 b9","7 #9"]],["11THS + #11",["Dominant 11","Major 11","Minor 11","Major 7 #11","7 #11"]],["13THS + ALTERED",["Dominant 13","Major 13","Minor 13","7 b13","7 b5","7 #5","Altered 7"]]];
+ $("type").innerHTML=groups.map(g=>`<optgroup label="${g[0]}">`+g[1].map(t=>`<option${t==="Major 7"?" selected":""}>${t}</option>`).join("")+"</optgroup>").join("");
+ update();
+}
+function ensureAudio(){if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume()}
+function pluck(fr,time,vel){let o=audio.createOscillator(),o2=audio.createOscillator(),g=audio.createGain(),f=audio.createBiquadFilter();o.type="triangle";o2.type="sine";o.frequency.setValueAtTime(fr,time);o2.frequency.setValueAtTime(fr*2.01,time);f.type="lowpass";f.frequency.setValueAtTime(2400,time);g.gain.setValueAtTime(.0001,time);g.gain.exponentialRampToValueAtTime(vel,time+.012);g.gain.exponentialRampToValueAtTime(.075,time+.18);g.gain.exponentialRampToValueAtTime(.0001,time+1.65);o.connect(g);o2.connect(g);g.connect(f);f.connect(audio.destination);o.start(time);o2.start(time);o.stop(time+1.7);o2.stop(time+1.7)}
+function strum(v){ensureAudio();let now=audio.currentTime+.02;v.frets.forEach((f,i)=>{if(typeof f==="number")pluck(FREQ[i]*Math.pow(2,f/12),now+i*.055,.22+(6-i)*.012)})}
+document.addEventListener("click",e=>{if(e.target.dataset.view){document.querySelectorAll("[data-view]").forEach(b=>b.classList.remove("active"));e.target.classList.add("active");view=e.target.dataset.view;render()} if(e.target.dataset.family){document.querySelectorAll("[data-family]").forEach(b=>b.classList.remove("active"));e.target.classList.add("active");fam=e.target.dataset.family;render()}});
+$("find").onclick=update;
+$("build").onclick=()=>{let rv=rootVal($("root").value),sel=[...document.querySelectorAll(".bi:checked")].map(x=>({n:x.value,s:+x.dataset.semi,r:1}));if(sel.length<3){alert("Choose at least three intervals.");return}let map=new Map(sel.map(x=>[mod(rv+x.s),x.n])),allowed=new Set(sel.map(x=>mod(rv+x.s))),shapes=[],seen=new Set();[0,3,5,7,9,12].forEach(start=>{let pools=OPEN.map((_,si)=>{let a=["x"];for(let f=0;f<=17;f++){if(f>0&&(f<start||f>start+4))continue;if(allowed.has(pcAt(si,f)))a.push(f)}return a});function rec(i,cur){if(i===6){let played=cur.map((f,si)=>typeof f==="number"?{f,pc:pcAt(si,f)}:null).filter(Boolean);if(played.length<3)return;if(!played.some(p=>p.pc===rv))return;let pos=played.filter(p=>p.f>0).map(p=>p.f);if(pos.length&&Math.max(...pos)-Math.min(...pos)>4)return;let k=cur.join("-");if(!seen.has(k)){seen.add(k);shapes.push([...cur])}return}pools[i].forEach(x=>{cur.push(x);rec(i+1,cur);cur.pop()})}rec(0,[])});voicings=shapes.slice(0,12).map((s,i)=>classify(s,rv,"Major",i,map,sel));$("chordName").textContent=$("root").value.split(" ")[0]+" Custom";$("formula").textContent=sel.map(x=>x.n).join(" – ");$("notes").textContent=sel.map(x=>pretty(rv+x.s)).join(" – ");$("gridTitle").textContent=$("root").value.split(" ")[0]+" custom chord voicings across the neck";fam="all";document.querySelectorAll("[data-family]").forEach(b=>b.classList.toggle("active",b.dataset.family==="all"));render()};
+$("root").onchange=update;$("type").onchange=update;init();
+</script>
+</body>
+</html>
