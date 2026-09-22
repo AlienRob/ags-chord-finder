@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AGS Voice Capture</title>
+<style>
+:root{
+  --purple-950:#160419;--purple-900:#210825;--purple-800:#351C75;--purple-700:#4c2b8f;
+  --gold:#C8A857;--paper:#F8F7FA;--card:#fff;--ink:#211A24;--muted:#746B78;--line:#E7E0EA;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,#160419,#351C75);min-height:100vh;color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;padding:18px}
+.shell{max-width:620px;margin:0 auto;background:var(--card);border-radius:20px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.12)}
+.head{background:linear-gradient(135deg,var(--purple-950),var(--purple-800));color:#fff;padding:20px 20px 17px;border-bottom:3px solid var(--gold)}
+.eyebrow{font-size:11px;font-weight:900;letter-spacing:1.25px;text-transform:uppercase;color:#e8dcf0}
+h1{font-size:22px;margin:4px 0 0}.fieldname{margin-top:5px;color:#f0e8f4}
+.body{padding:20px}
+.status{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:#FBFAFC;margin-bottom:14px}
+.dot{width:10px;height:10px;border-radius:50%;background:#9d94a1;box-shadow:0 0 0 5px rgba(157,148,161,.12)}
+.status.listening .dot{background:#B64242;box-shadow:0 0 0 5px rgba(182,66,66,.12);animation:pulse 1.1s infinite}
+@keyframes pulse{50%{transform:scale(1.3)}}
+textarea{width:100%;min-height:230px;border:1px solid #D7CEDC;border-radius:14px;padding:14px;font:inherit;resize:vertical;outline:none}
+textarea:focus{border-color:var(--purple-700);box-shadow:0 0 0 3px rgba(76,43,143,.12)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+button{appearance:none;border:0;border-radius:11px;padding:11px 14px;font:inherit;font-weight:800;cursor:pointer}
+.primary{background:var(--purple-800);color:#fff}.gold{background:var(--gold);color:var(--purple-950)}
+.ghost{background:#F2EEF5;color:var(--purple-800)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.note{font-size:12px;color:var(--muted);margin-top:14px}
+.error{display:none;margin-top:12px;padding:10px 12px;border-radius:10px;background:#FFF0F0;color:#842A2A;border:1px solid #E8B4B4}
+@media(max-width:560px){body{padding:0}.shell{min-height:100vh;border-radius:0}.body{padding:16px}.head{padding:18px 16px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="head">
+    <div class="eyebrow">Alien Guitar Secrets</div>
+    <h1>Voice Dictation</h1>
+    <div class="fieldname" id="fieldName">Lesson note</div>
+  </div>
+  <div class="body">
+    <div class="status" id="status"><span class="dot"></span><strong id="statusText">Ready</strong></div>
+    <textarea id="transcript" placeholder="Your dictation will appear here. You can edit it before sending it back."></textarea>
+    <div class="actions">
+      <button class="primary" id="startBtn">Start dictation</button>
+      <button class="ghost" id="stopBtn" disabled>Stop</button>
+      <button class="gold" id="useBtn">Use transcript</button>
+      <button class="ghost" id="cancelBtn">Cancel</button>
+    </div>
+    <div class="error" id="error"></div>
+    <div class="note">Uses your browser's speech-recognition service. Chrome on desktop or Android is recommended. Review the text before sending it back to the lesson record.</div>
+  </div>
+</div>
+<script>
+const p=new URLSearchParams(location.search);
+const target=p.get('target')||'';
+const token=p.get('token')||'';
+const label=p.get('label')||'Lesson note';
+document.getElementById('fieldName').textContent=label;
+const ta=document.getElementById('transcript');
+const startBtn=document.getElementById('startBtn');
+const stopBtn=document.getElementById('stopBtn');
+const useBtn=document.getElementById('useBtn');
+const cancelBtn=document.getElementById('cancelBtn');
+const status=document.getElementById('status');
+const statusText=document.getElementById('statusText');
+const errorBox=document.getElementById('error');
+
+let rec=null, finalText='', listening=false;
+
+function setError(msg){
+  errorBox.textContent=msg; errorBox.style.display='block';
+}
+function setListening(v){
+  listening=v; status.classList.toggle('listening',v);
+  statusText.textContent=v?'Listening…':'Ready';
+  startBtn.disabled=v; stopBtn.disabled=!v;
+}
+function buildRecognition(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    setError('Speech recognition is not available in this browser. Open this page in current Chrome and allow microphone access.');
+    startBtn.disabled=true; return null;
+  }
+  const r=new SR();
+  r.lang='en-AU'; r.interimResults=true; r.continuous=true;
+  r.onstart=()=>setListening(true);
+  r.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const text=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalText+=(finalText?' ':'')+text.trim();
+      else interim+=text;
+    }
+    ta.value=(finalText+(interim?' '+interim:'')).trim();
+  };
+  r.onerror=e=>{
+    setListening(false);
+    const map={
+      'not-allowed':'Microphone permission was blocked. Allow microphone access for this page in Chrome, then try again.',
+      'service-not-allowed':'Chrome speech recognition is not available for this page/account.',
+      'no-speech':'No speech was detected. Try again.',
+      'audio-capture':'No working microphone was found.'
+    };
+    setError(map[e.error]||('Dictation error: '+e.error));
+  };
+  r.onend=()=>setListening(false);
+  return r;
+}
+function start(){
+  errorBox.style.display='none';
+  if(!rec) rec=buildRecognition();
+  if(!rec) return;
+  finalText=ta.value.trim();
+  try{rec.start()}catch(e){}
+}
+function stop(){
+  if(rec&&listening){try{rec.stop()}catch(e){}}
+}
+startBtn.addEventListener('click',start);
+stopBtn.addEventListener('click',stop);
+useBtn.addEventListener('click',()=>{
+  stop();
+  const text=ta.value.trim();
+  if(!text){setError('There is no transcript to send yet.');return;}
+  if(window.opener){
+    window.opener.postMessage({type:'AGS_VOICE_TRANSCRIPT',target,token,text},'*');
+    statusText.textContent='Sent to lesson record';
+    setTimeout(()=>window.close(),220);
+  }else{
+    navigator.clipboard?.writeText(text);
+    statusText.textContent='Copied — return to the lesson record and paste';
+  }
+});
+cancelBtn.addEventListener('click',()=>{stop();window.close()});
+window.addEventListener('beforeunload',stop);
+setTimeout(()=>{ if(document.visibilityState==='visible') start(); },350);
+</script>
+</body>
+</html>
