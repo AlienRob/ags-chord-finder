@@ -58,6 +58,9 @@
 @keyframes agsRootGlow{0%,100%{filter:drop-shadow(0 0 6px rgba(255,23,72,.45))}50%{filter:drop-shadow(0 0 13px rgba(255,23,72,.78))}}
 .tone-explain{border-left:3px solid rgba(125,92,255,.8);padding-left:10px;min-height:42px;}
 
+
+.admin-diagram-export{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:8px 0 10px}
+.admin-diagram-export button{height:34px;padding:0 12px;border-radius:999px;font-size:11px;font-weight:900;background:#d8b45d;color:#17130b;border:0;cursor:pointer}
 </style>
 <style id="ags-v4-blue-container-white-charts">
 /* V4 visual integration: AGS blue/purple app containers, white fretboard/chart only. */
@@ -530,12 +533,32 @@ function compatibleScaleList(type){
 function scaleUrl(scaleName){const u=new URL(SCALE_FINDER_URL,window.location.href);u.searchParams.set("root",rootForUrl());u.searchParams.set("scale",scaleName);return u.href;}
 function renderCompatibleScales(){const holder=$("compatibleScales");if(!holder)return;const type=$("type")?$("type").value:"Major";holder.innerHTML=compatibleScaleList(type).map(([scale,desc])=>`<div class="scale-row" data-scale-link="${scale}"><strong>${scale}</strong><small>${desc}</small></div>`).join("");holder.querySelectorAll("[data-scale-link]").forEach(row=>row.onclick=()=>{window.location.href=scaleUrl(row.dataset.scaleLink)});}
 
+
+function chordExportSafeName(value){return String(value||"AGS-chord").replace(/[♭]/g,"b").replace(/[♯]/g,"#").replace(/[^a-z0-9#]+/gi,"-").replace(/^-+|-+$/g,"").toLowerCase()}
+function chordExportDownload(blob,filename){const a=document.createElement("a"),url=URL.createObjectURL(blob);a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function exportChordSvgFromCard(card){
+ const src=card&&card.querySelector(".diagram svg");
+ if(!src)throw new Error("No chord diagram found.");
+ const clone=src.cloneNode(true),srcNodes=[src,...src.querySelectorAll("*")],dstNodes=[clone,...clone.querySelectorAll("*")];
+ const props=["fill","stroke","stroke-width","stroke-linecap","stroke-linejoin","opacity","font-family","font-size","font-weight","font-style","text-anchor","dominant-baseline"];
+ srcNodes.forEach((node,i)=>{const dst=dstNodes[i],cs=getComputedStyle(node);props.forEach(p=>{const v=cs.getPropertyValue(p);if(v&&v!=="none"&&v!=="normal")dst.style.setProperty(p,v)})});
+ clone.setAttribute("xmlns","http://www.w3.org/2000/svg");
+ clone.removeAttribute("aria-hidden");
+ return new XMLSerializer().serializeToString(clone);
+}
+function exportChordSvgFile(button){
+ try{const card=button.closest(".card"),i=+button.dataset.exportSvg,v=voicings[i],svg=exportChordSvgFromCard(card),base=chordExportSafeName((document.getElementById("chordName")?.textContent||"chord")+"-"+(v?.title||"voicing"));chordExportDownload(new Blob([svg],{type:"image/svg+xml;charset=utf-8"}),base+".svg")}catch(err){alert(err.message||"Unable to export chord SVG.")}
+}
+function exportChordPngFile(button){
+ try{const card=button.closest(".card"),i=+button.dataset.exportPng,v=voicings[i],svg=exportChordSvgFromCard(card),base=chordExportSafeName((document.getElementById("chordName")?.textContent||"chord")+"-"+(v?.title||"voicing")),blob=new Blob([svg],{type:"image/svg+xml;charset=utf-8"}),url=URL.createObjectURL(blob),img=new Image();img.onload=()=>{const mult=4,canvas=document.createElement("canvas");canvas.width=img.width*mult;canvas.height=img.height*mult;const ctx=canvas.getContext("2d");ctx.scale(mult,mult);ctx.drawImage(img,0,0);URL.revokeObjectURL(url);canvas.toBlob(png=>{if(png)chordExportDownload(png,base+".png")},"image/png")};img.onerror=()=>{URL.revokeObjectURL(url);alert("Unable to render chord PNG.")};img.src=url}catch(err){alert(err.message||"Unable to export chord PNG.")}
+}
+
 function render(){
  let all=voicings.filter(v=>fam==="all"||v.family===fam);
  let sel=$("showCount"), lim=sel&&sel.value!=="all"?parseInt(sel.value,10):all.length;
  let show=all.slice(0,lim);
  $("count").textContent=show.length+" of "+all.length+" voicing"+(all.length===1?"":"s")+" shown";
- $("grid").innerHTML=show.length?show.map(v=>`<article class="card"><div class="card-top"><div><p class="pos">${v.title}</p><div class="voicing">${v.subtitle}</div></div><span class="tag">${v.tag}</span></div><div class="diagram">${diagram(v)}</div><div class="meta"><span><b>Lowest note:</b> ${v.lowest} (${v.inversion})</span><span><b>Omissions:</b> ${v.omissions}</span></div><button class="strum" data-i="${voicings.indexOf(v)}">Strum</button></article>`).join(""):`<div class="empty">No voicings in this filter. Try All.</div>`;
+ $("grid").innerHTML=show.length?show.map(v=>`<article class="card"><div class="card-top"><div><p class="pos">${v.title}</p><div class="voicing">${v.subtitle}</div></div><span class="tag">${v.tag}</span></div><div class="diagram">${diagram(v)}</div><div class="admin-diagram-export"><button type="button" data-export-svg="${voicings.indexOf(v)}">Export SVG</button><button type="button" data-export-png="${voicings.indexOf(v)}">Export PNG</button></div><div class="meta"><span><b>Lowest note:</b> ${v.lowest} (${v.inversion})</span><span><b>Omissions:</b> ${v.omissions}</span></div><button class="strum" data-i="${voicings.indexOf(v)}">Strum</button></article>`).join(""):`<div class="empty">No voicings in this filter. Try All.</div>`;
  document.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>strum(voicings[+b.dataset.i]));
  syncToneButtons();
 }
@@ -551,7 +574,7 @@ function init(){
 function ensureAudio(){if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==="suspended")audio.resume()}
 function pluck(fr,time,vel){let o=audio.createOscillator(),o2=audio.createOscillator(),g=audio.createGain(),f=audio.createBiquadFilter();o.type="triangle";o2.type="sine";o.frequency.setValueAtTime(fr,time);o2.frequency.setValueAtTime(fr*2.01,time);f.type="lowpass";f.frequency.setValueAtTime(2400,time);g.gain.setValueAtTime(.0001,time);g.gain.exponentialRampToValueAtTime(vel,time+.012);g.gain.exponentialRampToValueAtTime(.075,time+.18);g.gain.exponentialRampToValueAtTime(.0001,time+1.65);o.connect(g);o2.connect(g);g.connect(f);f.connect(audio.destination);o.start(time);o2.start(time);o.stop(time+1.7);o2.stop(time+1.7)}
 function strum(v){ensureAudio();let now=audio.currentTime+.02;v.frets.forEach((f,i)=>{if(typeof f==="number")pluck(FREQ[i]*Math.pow(2,f/12),now+i*.055,.22+(6-i)*.012)})}
-document.addEventListener("click",e=>{if(e.target.dataset.tone){toneFocus=e.target.dataset.tone;syncToneButtons();render();}});
+document.addEventListener("click",e=>{if(e.target.dataset.tone){toneFocus=e.target.dataset.tone;syncToneButtons();render();return}if(e.target.dataset.exportSvg!==undefined){exportChordSvgFile(e.target);return}if(e.target.dataset.exportPng!==undefined){exportChordPngFile(e.target);return}});
 $("build").onclick=()=>{let rv=rootVal($("root").value),sel=[...document.querySelectorAll(".bi:checked")].map(x=>({n:x.value,s:+x.dataset.semi,r:1}));if(sel.length<3){alert("Choose at least three intervals.");return}let map=new Map(sel.map(x=>[mod(rv+x.s),x.n])),allowed=new Set(sel.map(x=>mod(rv+x.s))),shapes=[],seen=new Set();[0,3,5,7,9,12].forEach(start=>{let pools=OPEN.map((_,si)=>{let a=["x"];for(let f=0;f<=17;f++){if(f>0&&(f<start||f>start+4))continue;if(allowed.has(pcAt(si,f)))a.push(f)}return a});function rec(i,cur){if(i===6){let played=cur.map((f,si)=>typeof f==="number"?{f,pc:pcAt(si,f)}:null).filter(Boolean);if(played.length<3)return;if(!played.some(p=>p.pc===rv))return;let pos=played.filter(p=>p.f>0).map(p=>p.f);if(pos.length&&Math.max(...pos)-Math.min(...pos)>4)return;let k=cur.join("-");if(!seen.has(k)){seen.add(k);shapes.push([...cur])}return}pools[i].forEach(x=>{cur.push(x);rec(i+1,cur);cur.pop()})}rec(0,[])});voicings=shapes.slice(0,12).map((s,i)=>classify(s,rv,"Major",i,map,sel));$("chordName").textContent=$("root").value.split(" ")[0]+" Custom";$("formula").textContent=sel.map(x=>x.n).join(" – ");$("notes").textContent=sel.map(x=>pretty(rv+x.s)).join(" – ");$("gridTitle").textContent=$("root").value.split(" ")[0]+" custom chord voicings across the neck";fam="all";document.querySelectorAll("[data-family]").forEach(b=>b.classList.toggle("active",b.dataset.family==="all"));render()};
 $("root").onchange=update;$("type").onchange=update;document.addEventListener("change",e=>{if(e.target&&e.target.id==="showCount")render()});init();
 </script>
